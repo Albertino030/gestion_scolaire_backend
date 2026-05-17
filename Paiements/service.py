@@ -1,13 +1,15 @@
 import mysql.connector
+import os
 from typing import Optional
 from datetime import datetime
 
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="gestions_scolaires"
+        host=os.environ.get('DB_HOST', 'localhost'),
+        user=os.environ.get('DB_USER', 'root'),
+        password=os.environ.get('DB_PASSWORD', ''),
+        database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+        port=int(os.environ.get('DB_PORT', 3306))
     )
 
 
@@ -246,7 +248,6 @@ def get_table_paiements(id_annee=None):
     cur = conn.cursor(dictionary=True)
 
     try:
-        # Requête pour récupérer les étudiants avec leurs paiements
         query = """
             SELECT 
                 e.numero_matricule,
@@ -330,7 +331,6 @@ def get_table_paiements(id_annee=None):
             LEFT JOIN filiere f ON e.id_filiere = f.id_filiere
         """
         
-        # Ajouter le filtre d'année si fourni
         if id_annee:
             query += " WHERE e.id_annee = %s"
             cur.execute(query, (id_annee,))

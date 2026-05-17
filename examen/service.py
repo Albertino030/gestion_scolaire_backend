@@ -1,14 +1,17 @@
 import mysql.connector
+import os
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="gestions_scolaires"
+        host=os.environ.get('DB_HOST', 'localhost'),
+        user=os.environ.get('DB_USER', 'root'),
+        password=os.environ.get('DB_PASSWORD', ''),
+        database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+        port=int(os.environ.get('DB_PORT', 3306))
     )
+
 
 # =========================
 # MATIERE
@@ -26,7 +29,6 @@ def get_matieres_by_filiere_niveau(filiere: str, niveau: str, id_annee: int = No
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Convertir les noms en IDs
     cursor.execute("SELECT id_filiere FROM filiere WHERE nom_filiere = %s", (filiere,))
     filiere_result = cursor.fetchone()
     if not filiere_result:
@@ -71,6 +73,7 @@ def delete_matiere(id_matiere):
     conn.close()
     return {"message": "Matière supprimée"}
 
+
 # =========================
 # PROGRAMME SCOLAIRE
 # =========================
@@ -98,6 +101,7 @@ def add_programme(id_filiere, id_niveau, id_matiere, coefficient):
     conn.commit()
     conn.close()
     return {"message": "Programme ajouté"}
+
 
 # =========================
 # ETUDIANTS PAR FILIERE ET NIVEAU
@@ -135,6 +139,7 @@ def get_etudiants_by_filiere_niveau(filiere: str, niveau: str, id_annee: int = N
     data = cursor.fetchall()
     conn.close()
     return data
+
 
 # =========================
 # NOTES AVEC FILTRES ET ANNEE
@@ -281,6 +286,7 @@ def delete_note(id_note):
     conn.commit()
     conn.close()
     return {"message": "Note supprimée"}
+
 
 # =========================
 # FILIERES ET NIVEAUX

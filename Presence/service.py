@@ -1,17 +1,20 @@
+# presence/service.py
 import mysql.connector
+import os
 
 db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="gestions_scolaires"
+    host=os.environ.get('DB_HOST', 'localhost'),
+    user=os.environ.get('DB_USER', 'root'),
+    password=os.environ.get('DB_PASSWORD', ''),
+    database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+    port=int(os.environ.get('DB_PORT', 3306))
 )
 
 cursor = db.cursor(dictionary=True)
 
 
 def get_presences(id_annee=None):
-    print(f"🔍 get_presences called with id_annee={id_annee}")  # Debug
+    print(f"🔍 get_presences called with id_annee={id_annee}")
     
     query = """
         SELECT 
@@ -37,7 +40,6 @@ def get_presences(id_annee=None):
 
     params = []
 
-    # 🔥 FILTRE ANNÉE SCOLAIRE
     if id_annee:
         query += " WHERE e.id_annee = %s "
         params.append(id_annee)

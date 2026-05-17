@@ -1,14 +1,16 @@
 # Dashboard/service.py
 import mysql.connector
+import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="gestions_scolaires"
+        host=os.environ.get('DB_HOST', 'localhost'),
+        user=os.environ.get('DB_USER', 'root'),
+        password=os.environ.get('DB_PASSWORD', ''),
+        database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+        port=int(os.environ.get('DB_PORT', 3306))
     )
 
 

@@ -1,14 +1,16 @@
 # Suivi_formation/service.py
 import mysql.connector
+import os
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="gestions_scolaires"
+        host=os.environ.get('DB_HOST', 'localhost'),
+        user=os.environ.get('DB_USER', 'root'),
+        password=os.environ.get('DB_PASSWORD', ''),
+        database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+        port=int(os.environ.get('DB_PORT', 3306))
     )
 
 
@@ -180,7 +182,6 @@ def supprimer_suivi(suivi_id: int) -> Dict[str, Any]:
 
 
 def get_tableau_suivi(id_annee_sortie: Optional[int] = None) -> List[Dict[str, Any]]:
-    """Recupere le tableau complet des suivis format pivot (etudiants X annees 1-5)"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
@@ -208,7 +209,6 @@ def get_tableau_suivi(id_annee_sortie: Optional[int] = None) -> List[Dict[str, A
         
         resultats = cursor.fetchall()
         
-        # Transformer en format pivot
         pivot = {}
         for row in resultats:
             key = row["numero_matricule"]

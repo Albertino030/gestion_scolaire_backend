@@ -1,5 +1,6 @@
 # Année_scolaire/service.py
 import mysql.connector
+import os
 from typing import Optional, List, Dict, Any
 import logging
 
@@ -10,11 +11,13 @@ logger = logging.getLogger(__name__)
 # =========================
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="gestions_scolaires"
+        host=os.environ.get('DB_HOST', 'localhost'),
+        user=os.environ.get('DB_USER', 'root'),
+        password=os.environ.get('DB_PASSWORD', ''),
+        database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+        port=int(os.environ.get('DB_PORT', 3306))
     )
+
 
 # =========================
 # AJOUT
@@ -46,6 +49,7 @@ def add_annee(data: Dict[str, Any]) -> Dict[str, Any]:
         cursor.close()
         conn.close()
 
+
 # =========================
 # LISTE
 # =========================
@@ -63,6 +67,7 @@ def get_annees() -> List[Dict[str, Any]]:
     finally:
         cursor.close()
         conn.close()
+
 
 # =========================
 # GET ACTIVE
@@ -82,6 +87,7 @@ def get_annee_active() -> Optional[Dict[str, Any]]:
         cursor.close()
         conn.close()
 
+
 # =========================
 # ACTIVER UNE ANNÉE
 # =========================
@@ -90,17 +96,14 @@ def activer_annee(id_annee: int) -> Dict[str, Any]:
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Vérifier si l'année existe
         cursor.execute("SELECT * FROM annee_scolaire WHERE id_annee = %s", (id_annee,))
         annee = cursor.fetchone()
         
         if not annee:
             raise Exception(f"L'année avec l'ID {id_annee} n'existe pas")
         
-        # Désactiver toutes les années
         cursor.execute("UPDATE annee_scolaire SET actif = 0")
         
-        # Activer l'année sélectionnée
         cursor.execute(
             "UPDATE annee_scolaire SET actif = 1 WHERE id_annee = %s",
             (id_annee,)
@@ -116,6 +119,7 @@ def activer_annee(id_annee: int) -> Dict[str, Any]:
         cursor.close()
         conn.close()
 
+
 # =========================
 # DELETE
 # =========================
@@ -124,7 +128,6 @@ def delete_annee(id_annee: int) -> Dict[str, Any]:
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Vérifier si l'année est active
         cursor.execute("SELECT actif FROM annee_scolaire WHERE id_annee = %s", (id_annee,))
         annee = cursor.fetchone()
         
@@ -148,6 +151,7 @@ def delete_annee(id_annee: int) -> Dict[str, Any]:
         cursor.close()
         conn.close()
 
+
 # =========================
 # UPDATE
 # =========================
@@ -156,7 +160,6 @@ def update_annee(id_annee: int, data: Dict[str, Any]) -> Dict[str, Any]:
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Vérifier si l'année existe
         cursor.execute("SELECT * FROM annee_scolaire WHERE id_annee = %s", (id_annee,))
         annee = cursor.fetchone()
         

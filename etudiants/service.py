@@ -1,11 +1,13 @@
 import mysql.connector
+import os
 from mysql.connector import Error
 
 db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="gestions_scolaires"
+    host=os.environ.get('DB_HOST', 'localhost'),
+    user=os.environ.get('DB_USER', 'root'),
+    password=os.environ.get('DB_PASSWORD', ''),
+    database=os.environ.get('DB_NAME', 'gestions_scolaires'),
+    port=int(os.environ.get('DB_PORT', 3306))
 )
 
 cursor = db.cursor(dictionary=True)
@@ -31,7 +33,6 @@ def map_text_to_ids(data):
         data["id_filiere"] = f["id_filiere"] if f else None
         
         if not f:
-            # Essayer avec LIKE si pas trouvé exactement
             cursor.execute(
                 "SELECT id_filiere FROM filiere WHERE LOWER(nom_filiere) LIKE LOWER(%s)",
                 (f"%{data['filiere_choisie']}%",)
@@ -188,11 +189,9 @@ def update_etudiant(numero_matricule, data):
         data = clean_dates(data)
         data = map_text_to_ids(data)
         
-        # Si l'année n'est pas fournie, garder l'ancienne ou mettre l'année active
         if not data.get("id_annee"):
             data["id_annee"] = get_id_annee_active()
         
-        # Récupérer l'étudiant existant pour conserver les IDs si non trouvés
         cursor.execute("SELECT id_filiere, id_niveau FROM etudiants WHERE numero_matricule = %s", (numero_matricule,))
         existing = cursor.fetchone()
         

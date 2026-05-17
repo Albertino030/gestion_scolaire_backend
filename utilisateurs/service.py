@@ -14,10 +14,10 @@ from typing import Optional, Dict, Any
 from .model import User, UserResponse, UserLogin, UserRegister
 
 # Configuration JWT
-SECRET_KEY = "votre_secret_key_tres_securisee_a_changer"  # À mettre dans variables d'environnement
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'votre_secret_key_tres_securisee_a_changer')
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 heures
-RESET_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = 480
+RESET_TOKEN_EXPIRE_MINUTES = 30
 
 # Configuration Email
 SMTP_SERVER = "smtp.gmail.com"
@@ -30,11 +30,11 @@ FRONTEND_URL = "http://localhost:5173"
 class DatabaseConnection:
     def __init__(self):
         self.config = {
-            'host': 'localhost',
-            'database': 'gestions_scolaires',
-            'user': 'root',
-            'password': '',
-            'port': 3306
+            'host': os.environ.get('DB_HOST', 'localhost'),
+            'database': os.environ.get('DB_NAME', 'gestions_scolaires'),
+            'user': os.environ.get('DB_USER', 'root'),
+            'password': os.environ.get('DB_PASSWORD', ''),
+            'port': int(os.environ.get('DB_PORT', 3306))
         }
     
     def get_connection(self):
@@ -52,13 +52,11 @@ class EmailService:
     def send_password_reset_email(to_email: str, reset_link: str) -> bool:
         """Envoie un email de réinitialisation de mot de passe"""
         try:
-            # Créer le message
             msg = MIMEMultipart('alternative')
             msg['From'] = f"{FROM_NAME} <{EMAIL_ADDRESS}>"
             msg['To'] = to_email
             msg['Subject'] = "Réinitialisation de votre mot de passe - CFP Don Bosco"
             
-            # Version texte
             text_content = f"""
             Bonjour,
             
@@ -75,7 +73,6 @@ class EmailService:
             L'équipe CFP Don Bosco
             """
             
-            # Version HTML
             html_content = f"""
             <!DOCTYPE html>
             <html>
@@ -119,13 +116,11 @@ class EmailService:
             </html>
             """
             
-            # Attacher les versions
             part1 = MIMEText(text_content, 'plain')
             part2 = MIMEText(html_content, 'html')
             msg.attach(part1)
             msg.attach(part2)
             
-            # Envoyer l'email
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                 server.starttls()
                 server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
@@ -142,11 +137,9 @@ class UserService:
     def __init__(self):
         self.db = DatabaseConnection()
         self.email_service = EmailService()
-        # Créer la table password_resets si elle n'existe pas
         self._create_password_resets_table()
     
     def _create_password_resets_table(self):
-        """Crée la table pour les tokens de réinitialisation si elle n'existe pas"""
         connection = self.db.get_connection()
         if not connection:
             return
@@ -173,17 +166,14 @@ class UserService:
             connection.close()
     
     def hash_password(self, password: str) -> str:
-        """Hache un mot de passe avec bcrypt"""
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
         return hashed.decode('utf-8')
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Vérifie un mot de passe"""
         return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
     
     def create_access_token(self, user: Dict[str, Any]) -> str:
-        """Crée un token JWT"""
         payload = {
             'user_id': user['id'],
             'email': user['email'],
@@ -194,7 +184,6 @@ class UserService:
         return token
     
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
-        """Vérifie et décode un token JWT"""
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
@@ -204,11 +193,9 @@ class UserService:
             return None
     
     def generate_reset_token(self) -> str:
-        """Génère un token aléatoire pour la réinitialisation"""
         return ''.join(random.choices(string.ascii_letters + string.digits, k=64))
     
     def register_user(self, user_data: UserRegister) -> Optional[Dict[str, Any]]:
-        """Inscrit un nouvel utilisateur"""
         connection = self.db.get_connection()
         if not connection:
             return None
@@ -216,15 +203,12 @@ class UserService:
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # Vérifier si l'email existe déjà
             cursor.execute("SELECT id FROM utilisateurs WHERE email = %s", (user_data.email,))
             if cursor.fetchone():
                 return None
             
-            # Hacher le mot de passe
             hashed_password = self.hash_password(user_data.password)
             
-            # Insérer le nouvel utilisateur
             query = """
                 INSERT INTO utilisateurs (nom, prenom, email, password, role, is_active, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -235,12 +219,11 @@ class UserService:
                 user_data.email,
                 hashed_password,
                 user_data.role,
-                1,  # is_active = True
+                1,
                 datetime.now()
             ))
             connection.commit()
             
-            # Récupérer l'utilisateur créé
             user_id = cursor.lastrowid
             cursor.execute("""
                 SELECT id, nom, prenom, email, role, is_active, last_login, created_at 
@@ -258,7 +241,6 @@ class UserService:
             connection.close()
     
     def create_password_reset_token(self, email: str) -> Optional[str]:
-        """Crée un token de réinitialisation pour un email"""
         connection = self.db.get_connection()
         if not connection:
             return None
@@ -266,19 +248,15 @@ class UserService:
         try:
             cursor = connection.cursor()
             
-            # Vérifier si l'email existe
             cursor.execute("SELECT id FROM utilisateurs WHERE email = %s", (email,))
             if not cursor.fetchone():
                 return None
             
-            # Générer le token
             token = self.generate_reset_token()
             expires_at = datetime.now() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
             
-            # Supprimer les anciens tokens non utilisés
             cursor.execute("DELETE FROM password_resets WHERE email = %s AND used = FALSE", (email,))
             
-            # Insérer le nouveau token
             cursor.execute("""
                 INSERT INTO password_resets (email, token, expires_at)
                 VALUES (%s, %s, %s)
@@ -295,11 +273,9 @@ class UserService:
             connection.close()
     
     def send_reset_password_email(self, email: str, reset_link: str) -> bool:
-        """Envoie l'email de réinitialisation"""
         return self.email_service.send_password_reset_email(email, reset_link)
     
     def reset_password(self, token: str, new_password: str) -> bool:
-        """Réinitialise le mot de passe avec un token valide"""
         connection = self.db.get_connection()
         if not connection:
             return False
@@ -307,7 +283,6 @@ class UserService:
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # Vérifier le token
             cursor.execute("""
                 SELECT * FROM password_resets 
                 WHERE token = %s AND used = FALSE AND expires_at > %s
@@ -317,16 +292,13 @@ class UserService:
             if not reset_request:
                 return False
             
-            # Hacher le nouveau mot de passe
             hashed_password = self.hash_password(new_password)
             
-            # Mettre à jour le mot de passe
             cursor.execute("""
                 UPDATE utilisateurs SET password = %s, updated_at = %s
                 WHERE email = %s
             """, (hashed_password, datetime.now(), reset_request['email']))
             
-            # Marquer le token comme utilisé
             cursor.execute("UPDATE password_resets SET used = TRUE WHERE id = %s", (reset_request['id'],))
             
             connection.commit()
@@ -340,7 +312,6 @@ class UserService:
             connection.close()
     
     def authenticate_user(self, login_data: UserLogin) -> Optional[Dict[str, Any]]:
-        """Authentifie un utilisateur"""
         connection = self.db.get_connection()
         if not connection:
             return None
@@ -352,12 +323,10 @@ class UserService:
             user = cursor.fetchone()
             
             if user and self.verify_password(login_data.password, user['password']):
-                # Mettre à jour last_login
                 update_query = "UPDATE utilisateurs SET last_login = %s WHERE id = %s"
                 cursor.execute(update_query, (datetime.now(), user['id']))
                 connection.commit()
                 
-                # Créer le token
                 token = self.create_access_token(user)
                 
                 return {
@@ -382,7 +351,6 @@ class UserService:
             connection.close()
     
     def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """Récupère un utilisateur par son ID"""
         connection = self.db.get_connection()
         if not connection:
             return None
@@ -401,20 +369,17 @@ class UserService:
             connection.close()
     
     def change_password(self, user_id: int, current_password: str, new_password: str) -> bool:
-        """Change le mot de passe d'un utilisateur"""
         connection = self.db.get_connection()
         if not connection:
             return False
         
         try:
             cursor = connection.cursor(dictionary=True)
-            # Vérifier l'ancien mot de passe
             query = "SELECT password FROM utilisateurs WHERE id = %s"
             cursor.execute(query, (user_id,))
             user = cursor.fetchone()
             
             if user and self.verify_password(current_password, user['password']):
-                # Mettre à jour avec le nouveau mot de passe
                 new_hashed_password = self.hash_password(new_password)
                 update_query = "UPDATE utilisateurs SET password = %s, updated_at = %s WHERE id = %s"
                 cursor.execute(update_query, (new_hashed_password, datetime.now(), user_id))
