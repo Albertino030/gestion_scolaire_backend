@@ -27,11 +27,14 @@ app = FastAPI(title="Gestion Scolaire API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173", 
+        "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],  # React et autres frontends
+        "http://127.0.0.1:3000",
+        "https://gestion-scolaire-frontend.vercel.app",
+        "https://gestion-scolaire-frontend-d2contu9o.vercel.app",
+        "https://*.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
