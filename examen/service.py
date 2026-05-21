@@ -303,20 +303,18 @@ def get_all_niveaux():
     return ["1ère année", "2ème année", "3ème année"]
 
 def get_all_examens(id_annee: int = None):
+    """Récupère la liste des examens"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
     if id_annee:
         cursor.execute("SELECT id_examen, nom_examen FROM examen WHERE id_annee = %s ORDER BY id_examen", (id_annee,))
     else:
-        cursor.execute("SELECT DISTINCT nom_examen FROM examen WHERE id_annee = 1 ORDER BY id_examen")
+        cursor.execute("SELECT id_examen, nom_examen FROM examen ORDER BY id_examen")
     
     data = cursor.fetchall()
     conn.close()
-    
-    if id_annee:
-        return data
-    return [e['nom_examen'] for e in data]
+    return data
 
 def get_annee_active():
     conn = get_connection()
