@@ -22,7 +22,7 @@ from utilisateurs.router import router as auth_router
 app = FastAPI(title="Gestion Scolaire API")
 
 # =========================
-# CORS CONFIG
+# CORS CONFIG - CORRIGÉE
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +38,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # ← AJOUTER CETTE LIGNE
 )
 
 # =========================
@@ -91,4 +92,4 @@ def home():
 # =========================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)  # ← Changer 127.0.0.1 en 0.0.0.0

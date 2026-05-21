@@ -2,8 +2,9 @@ from fastapi import APIRouter, Query
 from typing import Optional
 from examen import service
 
+# ⚠️ Le préfixe doit être "/examen" pour correspondre au frontend
 router = APIRouter(
-    prefix="",
+    prefix="/examen",  # ← CHANGER de "" à "/examen"
     tags=["Examen"]
 )
 
